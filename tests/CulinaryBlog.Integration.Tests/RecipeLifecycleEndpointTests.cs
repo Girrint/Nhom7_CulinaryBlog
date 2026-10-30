@@ -46,7 +46,8 @@ public sealed class RecipeLifecycleEndpointTests : IClassFixture<TestWebApplicat
 
         var missingPrecondition = await _client.PutAsJsonAsync($"/api/v1/recipes/{recipeId}", body);
         var updated = await SendMutationAsync(HttpMethod.Put, $"/api/v1/recipes/{recipeId}", body, initialEtag);
-        var stale = await SendMutationAsync(HttpMethod.Put, $"/api/v1/recipes/{recipeId}", body, initialEtag);
+        var staleBody = body with { Title = "Stale lifecycle update" };
+        var stale = await SendMutationAsync(HttpMethod.Put, $"/api/v1/recipes/{recipeId}", staleBody, initialEtag);
 
         Assert.Equal((HttpStatusCode)StatusCodes.Status428PreconditionRequired, missingPrecondition.StatusCode);
         Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
