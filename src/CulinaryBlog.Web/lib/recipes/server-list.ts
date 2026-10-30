@@ -25,6 +25,10 @@ async function getCategories(baseUrl: string): Promise<CategoryDto[]> {
   return response.json() as Promise<CategoryDto[]>;
 }
 
+export async function getPublicCategories(): Promise<CategoryDto[]> {
+  return getCategories(recipeServerApiBaseUrl());
+}
+
 export async function getPublicRecipeList(filters: RecipeListFilters): Promise<RecipeListData> {
   const baseUrl = recipeServerApiBaseUrl();
   const client = createRecipeClient({

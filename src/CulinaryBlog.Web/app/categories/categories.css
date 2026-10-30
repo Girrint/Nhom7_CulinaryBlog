@@ -1,0 +1,129 @@
+.categories-page {
+  min-height: 100vh;
+  background: #f7f6f0;
+  color: #1c2118;
+}
+
+.categories-main {
+  width: min(72rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: clamp(3rem, 8vw, 6rem) 0;
+}
+
+.categories-heading {
+  max-width: 44rem;
+  margin-bottom: 2.5rem;
+}
+
+.categories-heading > p {
+  margin: 0 0 0.75rem;
+  color: #2d5d43;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.categories-heading h1 {
+  max-width: none;
+  margin: 0;
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-size: clamp(2.5rem, 7vw, 5rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.categories-heading > span {
+  display: block;
+  margin-top: 1rem;
+  color: #596055;
+  font-size: 1.1rem;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.category-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.25rem;
+  min-height: 10rem;
+  padding: 1.5rem;
+  border: 1px solid #d8d5c7;
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow: 0 8px 30px rgb(35 47 38 / 6%);
+  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.category-card:hover {
+  border-color: #789582;
+  box-shadow: 0 16px 36px rgb(35 47 38 / 12%);
+  transform: translateY(-2px);
+}
+
+.category-card-mark {
+  width: 4rem;
+  height: 4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 1rem;
+  color: #fff;
+  background: #2d5d43;
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.category-card-content {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.category-card-content strong {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-size: 1.35rem;
+}
+
+.category-card-content > span {
+  color: #596055;
+  line-height: 1.5;
+}
+
+.category-card-content small {
+  color: #2d5d43;
+  font-weight: 700;
+}
+
+.category-card-arrow {
+  color: #2d5d43;
+  font-size: 1.5rem;
+  transition: transform 180ms ease;
+}
+
+.category-card:hover .category-card-arrow {
+  transform: translateX(0.25rem);
+}
+
+.categories-retry {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+@media (max-width: 44rem) {
+  .category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .category-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .category-card-arrow {
+    display: none;
+  }
+}
