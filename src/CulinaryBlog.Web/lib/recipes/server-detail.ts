@@ -8,7 +8,7 @@ export async function getPublicRecipeDetail(id: string): Promise<RecipeDetailDto
   const client = createRecipeClient({
     baseUrl: recipeServerApiBaseUrl(),
     getAccessToken: () => null,
-    cache: "force-cache",
+    cache: "no-store",
   });
   const response = await client.detail(id);
   return response.data;

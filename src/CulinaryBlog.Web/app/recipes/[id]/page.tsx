@@ -10,12 +10,7 @@ import {
 } from "@/lib/recipes/detail";
 import { getPublicRecipeDetail } from "@/lib/recipes/server-detail";
 
-export const revalidate = 300;
-export const dynamicParams = true;
-
-export function generateStaticParams(): [] {
-  return [];
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
