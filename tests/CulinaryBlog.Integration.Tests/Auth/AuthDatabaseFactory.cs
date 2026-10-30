@@ -16,14 +16,15 @@ namespace CulinaryBlog.Integration.Tests.Auth;
 
 public sealed class AuthDatabaseFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private AuthTestDatabase? _database;
+    private PostgresTestDatabase? _database;
     private readonly CapturingSink _sink = new();
     public string AdminEmail { get; } = $"seed-{Guid.NewGuid():N}@example.test";
     public string AdminPassword { get; } = $"Aa1!{Guid.NewGuid():N}";
     public IReadOnlyList<LogEvent> Logs => _sink.Entries.ToArray();
     public CapturingPasswordResetEmailSender ResetEmails { get; } = new();
 
-    public async Task InitializeAsync() => _database = await AuthTestDatabase.CreateAsync();
+    public async Task InitializeAsync() =>
+        _database = await PostgresTestDatabase.CreateAsync(schemaPrefix: "auth_security");
     Task IAsyncLifetime.DisposeAsync() => DisposeAsync().AsTask();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

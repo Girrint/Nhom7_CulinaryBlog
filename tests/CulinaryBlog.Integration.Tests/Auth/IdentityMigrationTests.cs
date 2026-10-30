@@ -14,7 +14,7 @@ public sealed class IdentityMigrationTests
     [InlineData("20260920041340_InitialArchitecture")]
     public async Task IdentityMigrationAppliesToCleanAndPreIdentityDatabaseAndCanBeReapplied(string baseline)
     {
-        await using var database = await AuthTestDatabase.CreateAsync(baseline);
+        await using var database = await PostgresTestDatabase.CreateAsync(baseline, "identity_migration");
         await using var context = database.CreateContext();
         var migrator = context.GetService<IMigrator>();
         const string identityMigration = "20260920152509_AddIdentityAndRefreshTokens";
@@ -38,7 +38,7 @@ public sealed class IdentityMigrationTests
     public async Task LaterMigrationsPreserveIdentityPasswordRolesProfileAndRefreshState(string baseline)
     {
         // Includes both the original Identity schema and the last Week 06 migration.
-        await using var database = await AuthTestDatabase.CreateAsync(baseline);
+        await using var database = await PostgresTestDatabase.CreateAsync(baseline, "identity_migration");
         await using var context = database.CreateContext();
         await InsertIdentityAsync(context);
         await context.Database.MigrateAsync();
@@ -52,7 +52,7 @@ public sealed class IdentityMigrationTests
     [Fact]
     public async Task FullMigrationChainFromEmptyDatabaseSupportsIdentityConstraintsAndUserCascadeDelete()
     {
-        await using var database = await AuthTestDatabase.CreateAsync();
+        await using var database = await PostgresTestDatabase.CreateAsync(schemaPrefix: "identity_migration");
         await using var context = database.CreateContext();
         await InsertIdentityAsync(context);
         await AssertIdentityAsync(context);

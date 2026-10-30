@@ -5,27 +5,40 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 
-namespace CulinaryBlog.Integration.Tests.Auth;
+namespace CulinaryBlog.Integration.Tests;
 
-internal sealed class AuthTestDatabase(string adminConnection, string schema, string connectionString) : IAsyncDisposable
+internal sealed class PostgresTestDatabase(
+    string adminConnection,
+    string schema,
+    string connectionString) : IAsyncDisposable
 {
+    private int _disposed;
+
     public string ConnectionString { get; } = connectionString;
+    public string Schema => schema;
 
     public ApplicationDbContext CreateContext() => new(new DbContextOptionsBuilder<ApplicationDbContext>()
         .UseNpgsql(ConnectionString).Options);
 
-    public static async Task<AuthTestDatabase> CreateAsync(string baseline = "latest")
+    public static async Task<PostgresTestDatabase> CreateAsync(
+        string baseline = "latest",
+        string schemaPrefix = "integration")
     {
         var configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json")
             .AddJsonFile("appsettings.Development.json", optional: true)
-            .AddEnvironmentVariables().Build();
-        var adminConnection = new NpgsqlConnectionStringBuilder(configuration.GetConnectionString("Postgres"))
+            .AddEnvironmentVariables()
+            .Build();
+        var configuredConnection = configuration.GetConnectionString("Postgres")
+            ?? throw new InvalidOperationException(
+                "ConnectionStrings:Postgres must be configured for PostgreSQL integration tests.");
+        var adminConnection = new NpgsqlConnectionStringBuilder(configuredConnection)
         {
             Pooling = false,
         }.ConnectionString;
-        var schema = $"auth_security_{Guid.NewGuid():N}";
+        var schema = $"{schemaPrefix}_{Guid.NewGuid():N}";
+
         await using (var connection = new NpgsqlConnection(adminConnection))
         {
             await connection.OpenAsync();
@@ -43,13 +56,23 @@ internal sealed class AuthTestDatabase(string adminConnection, string schema, st
             await command.ExecuteNonQueryAsync();
         }
 
-        var testConnection = new NpgsqlConnectionStringBuilder(adminConnection) { SearchPath = schema }.ConnectionString;
-        var database = new AuthTestDatabase(adminConnection, schema, testConnection);
+        var testConnection = new NpgsqlConnectionStringBuilder(adminConnection)
+        {
+            SearchPath = schema,
+        }.ConnectionString;
+        var database = new PostgresTestDatabase(adminConnection, schema, testConnection);
         try
         {
             await using var context = database.CreateContext();
-            if (baseline == "latest") await context.Database.MigrateAsync();
-            else await context.GetService<IMigrator>().MigrateAsync(baseline);
+            if (baseline == "latest")
+            {
+                await context.Database.MigrateAsync();
+            }
+            else
+            {
+                await context.GetService<IMigrator>().MigrateAsync(baseline);
+            }
+
             return database;
         }
         catch
@@ -61,10 +84,15 @@ internal sealed class AuthTestDatabase(string adminConnection, string schema, st
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         await using var connection = new NpgsqlConnection(adminConnection);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
-        // schema is generated internally and never comes from configuration or user input.
+        // The schema is generated internally and never comes from configuration or user input.
         command.CommandText = $"DROP SCHEMA IF EXISTS \"{schema}\" CASCADE";
         await command.ExecuteNonQueryAsync();
     }
