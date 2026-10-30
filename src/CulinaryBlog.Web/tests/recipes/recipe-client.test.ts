@@ -24,10 +24,15 @@ test("responseEtag preserves the quoted HTTP ETag", () => {
   assert.equal(responseEtag(new Headers()), null);
 });
 
-test("detail returns its response body together with the ETag header", async () => {
+test("detail normalizes numeric backend enums and preserves the ETag header", async () => {
   const client = createRecipeClient({
     baseUrl: "https://api.example.test/api/v1",
-    fetchImplementation: async () => new Response(JSON.stringify({ id: "recipe-1", version: 7 }), {
+    fetchImplementation: async () => new Response(JSON.stringify({
+      id: "recipe-1",
+      version: 7,
+      difficulty: 2,
+      status: 1,
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json", ETag: '"7"' },
     }),
@@ -36,6 +41,8 @@ test("detail returns its response body together with the ETag header", async () 
   const result = await client.detail("recipe-1");
   assert.equal(result.data.id, "recipe-1");
   assert.equal(result.data.version, 7);
+  assert.equal(result.data.difficulty, "Hard");
+  assert.equal(result.data.status, "Published");
   assert.equal(result.eTag, '"7"');
 });
 
@@ -64,7 +71,10 @@ test("ETag-sensitive update sends If-Match and auth headers and captures the nex
   assert.equal(headers.get("If-Match"), '"8"');
   assert.equal(headers.get("Authorization"), "Bearer access-token");
   assert.equal(headers.get("Content-Type"), "application/json");
-  assert.deepEqual(JSON.parse(capturedInit?.body as string), updateRequest);
+  assert.deepEqual(JSON.parse(capturedInit?.body as string), {
+    ...updateRequest,
+    difficulty: 1,
+  });
   assert.equal(result.eTag, '"9"');
 });
 

@@ -6,11 +6,13 @@ import type {
   CreatedResource,
   RecipeApiResponse,
   RecipeDetailDto,
+  RecipeDifficulty,
   RecipeImageDto,
   RecipeIngredientDto,
   RecipeIngredientRequest,
   RecipeListFilters,
   RecipeListItemDto,
+  RecipeStatus,
   RecipeStepDto,
   RecipeStepRequest,
   UpdateRecipeRequest,
@@ -24,6 +26,55 @@ export interface RecipeClientOptions {
 }
 
 type RequestOptions = RequestInit & { eTag?: string };
+
+const difficultyByValue: Record<number, RecipeDifficulty> = {
+  0: "Easy",
+  1: "Medium",
+  2: "Hard",
+};
+
+const statusByValue: Record<number, RecipeStatus> = {
+  0: "Draft",
+  1: "Published",
+  2: "Archived",
+};
+
+const difficultyValue: Record<RecipeDifficulty, number> = {
+  Easy: 0,
+  Medium: 1,
+  Hard: 2,
+};
+
+function normalizeDifficulty(value: RecipeDifficulty | number): RecipeDifficulty {
+  return typeof value === "number" ? difficultyByValue[value] : value;
+}
+
+function normalizeStatus(value: RecipeStatus | number): RecipeStatus {
+  return typeof value === "number" ? statusByValue[value] : value;
+}
+
+function normalizeRecipeListItem(item: RecipeListItemDto): RecipeListItemDto {
+  return {
+    ...item,
+    difficulty: normalizeDifficulty(item.difficulty),
+    status: normalizeStatus(item.status),
+  };
+}
+
+function normalizeRecipeDetail(detail: RecipeDetailDto): RecipeDetailDto {
+  return {
+    ...detail,
+    difficulty: normalizeDifficulty(detail.difficulty),
+    status: normalizeStatus(detail.status),
+  };
+}
+
+function encodeRecipeRequest<T extends CreateRecipeRequest | UpdateRecipeRequest>(request: T) {
+  return {
+    ...request,
+    difficulty: difficultyValue[request.difficulty],
+  };
+}
 
 export interface RecipeClient {
   list(filters?: RecipeListFilters): Promise<RecipeApiResponse<RecipeListItemDto[]>>;
@@ -96,20 +147,41 @@ export function createRecipeClient(options: RecipeClientOptions = {}): RecipeCli
     request<T>(path, { method, eTag });
 
   return {
-    list(filters = {}) {
+    async list(filters = {}) {
       const search = new URLSearchParams();
       if (filters.categoryId) search.set("categoryId", filters.categoryId);
       if (filters.difficulty) search.set("difficulty", filters.difficulty);
       if (filters.status) search.set("status", filters.status);
       const query = search.toString();
-      return request<RecipeListItemDto[]>(`/recipes${query ? `?${query}` : ""}`);
+      const response = await request<RecipeListItemDto[]>(`/recipes${query ? `?${query}` : ""}`);
+      return { ...response, data: response.data.map(normalizeRecipeListItem) };
     },
-    detail: (id) => request<RecipeDetailDto>(`/recipes/${encodeURIComponent(id)}`),
-    create: (body) => jsonMutation<CreatedResource>("POST", "/recipes", body),
-    update: (id, body, eTag) => jsonMutation<RecipeDetailDto>("PUT", `/recipes/${encodeURIComponent(id)}`, body, eTag),
-    publish: (id, eTag) => eTagMutation<RecipeDetailDto>("PATCH", `/recipes/${encodeURIComponent(id)}/publish`, eTag),
-    unpublish: (id, eTag) => eTagMutation<RecipeDetailDto>("PATCH", `/recipes/${encodeURIComponent(id)}/unpublish`, eTag),
-    archive: (id, eTag) => eTagMutation<RecipeDetailDto>("PATCH", `/recipes/${encodeURIComponent(id)}/archive`, eTag),
+    async detail(id) {
+      const response = await request<RecipeDetailDto>(`/recipes/${encodeURIComponent(id)}`);
+      return { ...response, data: normalizeRecipeDetail(response.data) };
+    },
+    create: (body) => jsonMutation<CreatedResource>("POST", "/recipes", encodeRecipeRequest(body)),
+    async update(id, body, eTag) {
+      const response = await jsonMutation<RecipeDetailDto>(
+        "PUT",
+        `/recipes/${encodeURIComponent(id)}`,
+        encodeRecipeRequest(body),
+        eTag,
+      );
+      return { ...response, data: normalizeRecipeDetail(response.data) };
+    },
+    async publish(id, eTag) {
+      const response = await eTagMutation<RecipeDetailDto>("PATCH", `/recipes/${encodeURIComponent(id)}/publish`, eTag);
+      return { ...response, data: normalizeRecipeDetail(response.data) };
+    },
+    async unpublish(id, eTag) {
+      const response = await eTagMutation<RecipeDetailDto>("PATCH", `/recipes/${encodeURIComponent(id)}/unpublish`, eTag);
+      return { ...response, data: normalizeRecipeDetail(response.data) };
+    },
+    async archive(id, eTag) {
+      const response = await eTagMutation<RecipeDetailDto>("PATCH", `/recipes/${encodeURIComponent(id)}/archive`, eTag);
+      return { ...response, data: normalizeRecipeDetail(response.data) };
+    },
     delete: (id, eTag) => eTagMutation<void>("DELETE", `/recipes/${encodeURIComponent(id)}`, eTag),
     createIngredient: (id, body, eTag) => jsonMutation<CreatedResource>("POST", `/recipes/${encodeURIComponent(id)}/ingredients`, body, eTag),
     updateIngredient: (id, ingredientId, body, eTag) => jsonMutation<RecipeIngredientDto>("PUT", `/recipes/${encodeURIComponent(id)}/ingredients/${encodeURIComponent(ingredientId)}`, body, eTag),
