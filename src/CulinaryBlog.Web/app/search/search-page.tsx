@@ -334,7 +334,11 @@ export default function SearchPage() {
               )}
               <div className="recipe-grid">
                 {result.items.map((recipe) => (
-                  <article className="recipe-card" key={recipe.id}>
+                  <Link
+                    className="recipe-card"
+                    href={`/recipes/${encodeURIComponent(recipe.id)}`}
+                    key={recipe.id}
+                  >
                     <div className="recipe-card-image" aria-hidden="true" />
                     <div className="recipe-card-body">
                       <span className="recipe-card-category">
@@ -347,7 +351,7 @@ export default function SearchPage() {
                         {recipe.relevanceScore !== null && ` · Độ phù hợp ${recipe.relevanceScore.toFixed(2)}`}
                       </span>
                     </div>
-                  </article>
+                  </Link>
                 ))}
               </div>
               <Pagination
